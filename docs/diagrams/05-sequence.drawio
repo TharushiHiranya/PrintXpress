@@ -1,0 +1,23 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="sequence" name="Sequence place order">
+    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1120" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ll_cust" value="Customer" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F6E7FA;strokeColor=#A20BC8;fontColor=#A20BC8;size=40;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="160" height="440" as="geometry"/></mxCell>
+        <mxCell id="ll_ui" value="OrderScreen" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F6E7FA;strokeColor=#A20BC8;fontColor=#A20BC8;size=40;" vertex="1" parent="1"><mxGeometry x="260" y="40" width="160" height="440" as="geometry"/></mxCell>
+        <mxCell id="ll_vm" value="OrderViewModel" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F6E7FA;strokeColor=#A20BC8;fontColor=#A20BC8;size=40;" vertex="1" parent="1"><mxGeometry x="480" y="40" width="160" height="440" as="geometry"/></mxCell>
+        <mxCell id="ll_repo" value="OrderRepository" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F6E7FA;strokeColor=#A20BC8;fontColor=#A20BC8;size=40;" vertex="1" parent="1"><mxGeometry x="700" y="40" width="160" height="440" as="geometry"/></mxCell>
+        <mxCell id="ll_db" value="Room database" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F6E7FA;strokeColor=#A20BC8;fontColor=#A20BC8;size=40;" vertex="1" parent="1"><mxGeometry x="920" y="40" width="160" height="440" as="geometry"/></mxCell>
+        <mxCell id="m1" value="select product and enter specs" style="html=1;endArrow=block;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="120" y="120" as="sourcePoint"/><mxPoint x="340" y="120" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m2" value="placeOrder(order)" style="html=1;endArrow=block;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="340" y="160" as="sourcePoint"/><mxPoint x="560" y="160" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m3" value="saveOrder(order)" style="html=1;endArrow=block;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="560" y="200" as="sourcePoint"/><mxPoint x="780" y="200" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m4" value="insert order and items" style="html=1;endArrow=block;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="780" y="240" as="sourcePoint"/><mxPoint x="1000" y="240" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m5" value="orderId" style="html=1;endArrow=open;dashed=1;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1000" y="280" as="sourcePoint"/><mxPoint x="780" y="280" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m6" value="Success(orderId)" style="html=1;endArrow=open;dashed=1;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="780" y="320" as="sourcePoint"/><mxPoint x="560" y="320" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m7" value="state = order placed" style="html=1;endArrow=open;dashed=1;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="560" y="360" as="sourcePoint"/><mxPoint x="340" y="360" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="m8" value="show confirmation and notification" style="html=1;endArrow=open;dashed=1;rounded=0;strokeColor=#A20BC8;fontColor=#A20BC8;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="340" y="400" as="sourcePoint"/><mxPoint x="120" y="400" as="targetPoint"/></mxGeometry></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
