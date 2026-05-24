@@ -126,6 +126,31 @@ feat(order): build place order flow with pickup and delivery options
 feat: let customers select specs and place a print order
 ```
 
+## Design reference
+
+The visual design is captured in HTML mockup files exported from Claude Design. The source files live in the `design-extract/files/printxpress/project/` folder (not committed to the repo). Key files read during implementation:
+
+- `screens/shared.jsx` — shared colours, icons, Input, PrimaryBtn, Pill, StatusBadge, BottomNav
+- `screens/auth.jsx` — Splash, Login (with social buttons), Register
+- `screens/products.jsx` — Home, ProductList, ProductDetail
+- `screens/checkout.jsx` — PlaceOrder (3 steps), OrderConfirmation
+- `screens/orders.jsx` — OrdersScreen, OrderDetailScreen, empty state
+- `screens/account.jsx` — Profile, EditProfile, Addresses, Notifications, Guidelines, FAQ
+
+Key design decisions captured here:
+- Logo: centred 180 dp on Splash, 100 dp on Login/Register
+- Login screen has a social-auth divider with Google and Apple buttons (pure UI, no backend)
+- Password strength in Register uses 4 filled segments, not a LinearProgressIndicator
+- Register has a "By continuing you agree to our Terms & Privacy policy" note
+- OfferCard has a 4 dp left accent bar and a white circle decoration in the bottom-right corner
+- Category cards: 56 dp icon container, rounded 14 dp, AccentContainer fill, icon at 28 dp
+- ProductListScreen has filter chips below the search bar
+- ProductDetailScreen has a dotted upload zone and a delivery-info banner
+- OrderDetailScreen has an AccentContainer hero card showing the current status
+- Notifications use a 4 dp AccentContainer left border (or transparent) on each row
+- Profile has a stats card (Orders / Lifetime / Tier) above the menu rows
+- Status colours: Printing → amber (#FFF4E0 / #A05A00), Ready → green (#E4F6E8 / #1F7A36), Delivery → blue (#E4EEFB / #1853A5), Cancelled → red (#FCE4E4 / #B3261E)
+
 ## docs/ directory
 
 All documentation lives in `docs/`. Treat it as the source of truth for scope and design.

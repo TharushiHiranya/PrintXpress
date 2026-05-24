@@ -35,8 +35,9 @@ app/src/main/java/com/hiranya/printxpress/
   data/
     entity/      Room @Entity classes (User, Address, Category, Product, Order, OrderItem, SavedDesign, Notification, Promotion)
     dao/         @Dao interfaces, one per area
-    PrintXpressDatabase.kt   the @Database class, plus the seed callback
     repository/  repositories that wrap the DAOs
+    util/        HashUtil.kt (password hashing) and SessionManager.kt (in-memory login state)
+    PrintXpressDatabase.kt   the @Database class, plus the seed callback
   ui/
     theme/       Color.kt, Type.kt, Theme.kt
     screens/     one Composable file per screen
@@ -55,16 +56,16 @@ docs/            all documentation and the diagrams
 
 The first launch creates the database and seeds the starting catalog, so products appear straight away.
 
-## Dependencies to add
+## Dependencies
 
-Room is not in the project yet. It needs to be added before the data layer is written. Per the project rules, this must be approved first. The proposed additions are below.
+All required libraries are already in the project.
 
-Add to `gradle/libs.versions.toml`:
+`gradle/libs.versions.toml` includes:
 
 ```toml
 [versions]
 room = "2.6.1"
-ksp = "2.0.21-1.0.28"   # must match the Kotlin version, 2.0.21
+ksp = "2.0.21-1.0.28"
 
 [libraries]
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -75,7 +76,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 ```
 
-Add the KSP plugin to the root `build.gradle.kts`:
+The root `build.gradle.kts` has the KSP plugin:
 
 ```kotlin
 plugins {
@@ -85,7 +86,7 @@ plugins {
 }
 ```
 
-Add to `app/build.gradle.kts`:
+`app/build.gradle.kts` has the Room and ViewModel dependencies:
 
 ```kotlin
 plugins {
@@ -99,11 +100,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    // existing Compose and lifecycle dependencies stay as they are
+    // ViewModel for Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 }
 ```
-
-A view model also needs `lifecycle-viewmodel-compose`. That is a second small dependency to approve when the first view model is added.
 
 ## Database
 

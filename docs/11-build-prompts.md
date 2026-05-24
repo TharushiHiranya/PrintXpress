@@ -118,12 +118,12 @@ The design reference is the UI shown in the PrintXpress design file. Follow the 
 - Use only the named colour tokens from `ui/theme/Color.kt`. No hardcoded hex values anywhere.
 - All text in sentence case.
 - Rounded corners: `RoundedCornerShape(12.dp)` on buttons and text fields, `RoundedCornerShape(16.dp)` on cards.
-- The logo is not available yet. Use a placeholder: a `Box` 80 dp wide and tall, `AccentContainer` background, `RoundedCornerShape(16.dp)`, white `Text` "PX" in `MaterialTheme.typography.titleLarge` centred inside using `contentAlignment = Alignment.Center`. Add a comment: `// TODO: replace with Image(painterResource(R.drawable.logo)) when the logo file is added`.
+- Use the logo image from the drawable resource. Display it with `Image(painter = painterResource(R.drawable.logo), contentDescription = "PrintXpress logo", modifier = Modifier.size(size), contentScale = ContentScale.Fit)` where `size` is 180 dp on the splash screen and 80 dp on the login and register screens. Import `androidx.compose.ui.layout.ContentScale` and `androidx.compose.foundation.Image`.
 
 **SplashScreen:**
 - White background, no top bar.
 - Centre all content vertically and horizontally using a `Column` with `horizontalAlignment = Alignment.CenterHorizontally` and `verticalArrangement = Arrangement.Center` inside a `Box` that fills the full screen.
-- Logo placeholder 180 dp wide and 180 dp tall, centred.
+- Logo 180 dp wide and 180 dp tall, centred.
 - "PrintXpress" in `MaterialTheme.typography.displaySmall`, `Accent` colour, `Spacer(16.dp)` below the logo.
 - "Print, delivered." in `MaterialTheme.typography.bodyMedium`, `TextSecondary`, `Spacer(8.dp)` below the name.
 - Use `LaunchedEffect(Unit) { delay(2000); navController.navigate(Screen.Login.route) { popUpTo(Screen.Splash.route) { inclusive = true } } }` to auto-navigate after 2 seconds.
@@ -131,7 +131,7 @@ The design reference is the UI shown in the PrintXpress design file. Follow the 
 **LoginScreen:**
 - White background, no top bar.
 - Wrap everything in a `Column` with `modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)`.
-- Logo placeholder 80 dp wide and 80 dp tall, centred, with `Spacer(48.dp)` from the top.
+- Logo 80 dp wide and 80 dp tall, centred, with `Spacer(48.dp)` from the top.
 - "Welcome back" in `headlineMedium`, `TextPrimary`, `Spacer(24.dp)` below the logo.
 - "Sign in to continue" in `bodyMedium`, `TextSecondary`, `Spacer(8.dp)` below the heading.
 - Two `OutlinedTextField`s with `modifier = Modifier.fillMaxWidth()` and `shape = RoundedCornerShape(12.dp)`:
@@ -145,7 +145,7 @@ The design reference is the UI shown in the PrintXpress design file. Follow the 
 **RegisterScreen:**
 - White background, no top bar.
 - Wrap everything in a `Column` with `modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)`.
-- Logo placeholder 80 dp wide and 80 dp tall, centred, with `Spacer(48.dp)` from the top.
+- Logo 80 dp wide and 80 dp tall, centred, with `Spacer(48.dp)` from the top.
 - "Create your account" in `headlineMedium`, `TextPrimary`.
 - "Join PrintXpress today" in `bodyMedium`, `TextSecondary`, `Spacer(8.dp)` below.
 - A `Row` with two `FilterChip`s side by side with `Spacer(8.dp)` between them, wrapped in `Modifier.fillMaxWidth()` with `horizontalArrangement = Arrangement.Center`:
