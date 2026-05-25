@@ -1,5 +1,6 @@
 package com.hiranya.printxpress.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CardDefaults
@@ -27,7 +27,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -44,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -70,6 +70,7 @@ fun EditProfileScreen(
     navController: NavController,
     viewModel: ProfileViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val user by viewModel.user
     val updateError by viewModel.updateError
     val updateSuccess by viewModel.updateSuccess
@@ -77,6 +78,7 @@ fun EditProfileScreen(
     // Pop back automatically when save succeeds.
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
+            Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
             viewModel.updateSuccess.value = false
             navController.popBackStack()
         }
@@ -162,15 +164,6 @@ fun EditProfileContent(
                     ) {
                         Text(user?.fullName?.first()?.uppercase() ?: "?", style = MaterialTheme.typography.headlineMedium, color = Accent)
                     }
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(Accent, CircleShape)
-                            .align(Alignment.BottomEnd),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = null, tint = OnAccent, modifier = Modifier.size(16.dp))
-                    }
                 }
             }
 
@@ -218,30 +211,6 @@ fun EditProfileContent(
                 visible = showConfirmPwd,
                 onToggle = { showConfirmPwd = !showConfirmPwd }
             )
-
-            Spacer(Modifier.height(16.dp))
-
-            // Security notice banner
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = StatusAmberBg),
-                elevation = CardDefaults.cardElevation(0.dp),
-                border = androidx.compose.foundation.BorderStroke(0.dp, StatusAmberBg)
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(Icons.Rounded.Info, contentDescription = null, tint = StatusAmber, modifier = Modifier.size(20.dp))
-                    Text(
-                        "For security, we'll send a confirmation link to your email after changing your password.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = StatusAmber
-                    )
-                }
-            }
 
             Spacer(Modifier.height(24.dp))
         }

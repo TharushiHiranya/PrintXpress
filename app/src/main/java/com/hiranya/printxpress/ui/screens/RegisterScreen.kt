@@ -44,6 +44,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalContext
+import android.view.autofill.AutofillManager
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +77,40 @@ import com.hiranya.printxpress.ui.theme.TextSecondary
 
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
+    val isLoading by viewModel.isLoading
+    val registerError by viewModel.registerError
+
+    val context = LocalContext.current
+    val autofillManager = context.getSystemService(AutofillManager::class.java)
+
+    RegisterContent(
+        isLoading = isLoading,
+        registerError = registerError,
+        onRegister = { fullName, emailOrPhone, isEmail, password, confirmPassword ->
+            viewModel.register(
+                fullName = fullName,
+                emailOrPhone = emailOrPhone,
+                isEmail = isEmail,
+                password = password,
+                confirmPassword = confirmPassword
+            ) {
+                autofillManager?.commit()
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+            }
+        },
+        onLoginClick = { navController.popBackStack() }
+    )
+}
+
+@Composable
+fun RegisterContent(
+    isLoading: Boolean,
+    registerError: String?,
+    onRegister: (String, String, Boolean, String, String) -> Unit,
+    onLoginClick: () -> Unit
+) {
     var selectedTab by remember { mutableStateOf("email") }
     var fullName by remember { mutableStateOf("") }
     var emailOrPhone by remember { mutableStateOf("") }
@@ -76,9 +118,6 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-
-    val isLoading = viewModel.isLoading.value
-    val registerError = viewModel.registerError.value
 
     Column(
         modifier = Modifier
@@ -160,14 +199,23 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Show email or phone field based on the selected tab
         OutlinedTextField(
             value = emailOrPhone,
             onValueChange = { emailOrPhone = it },
             label = { Text(if (selectedTab == "email") "Email" else "Phone") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    if (selectedTab == "email") {
+                        contentType = ContentType.EmailAddress
+                    }
+                },
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (selectedTab == "email") KeyboardType.Email else KeyboardType.Phone,
+                imeAction = ImeAction.Next
+            )
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -176,10 +224,16 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentType = ContentType.NewPassword },
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
@@ -243,10 +297,16 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             label = { Text("Confirm password") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentType = ContentType.NewPassword },
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
             trailingIcon = {
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Icon(
@@ -261,17 +321,13 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
 
         Button(
             onClick = {
-                viewModel.register(
-                    fullName = fullName,
-                    emailOrPhone = emailOrPhone,
-                    isEmail = selectedTab == "email",
-                    password = password,
-                    confirmPassword = confirmPassword
-                ) {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
-                }
+                onRegister(
+                    fullName,
+                    emailOrPhone,
+                    selectedTab == "email",
+                    password,
+                    confirmPassword
+                )
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -323,7 +379,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Already have an account?", color = TextSecondary)
-            TextButton(onClick = { navController.popBackStack() }) {
+            TextButton(onClick = onLoginClick) {
                 Text("Log in", color = Accent, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -336,6 +392,11 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = view
 @Composable
 fun RegisterScreenPreview() {
     PrintXpressTheme {
-        RegisterScreen(rememberNavController())
+        RegisterContent(
+            isLoading = false,
+            registerError = null,
+            onRegister = { _, _, _, _, _ -> },
+            onLoginClick = {}
+        )
     }
 }

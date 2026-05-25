@@ -9,8 +9,13 @@ data class Promotion(
     @PrimaryKey(autoGenerate = true) val promoId: Long = 0,
     val title: String,
     val description: String,
-    val discountPercent: Int,
     val code: String,
     val validFrom: Long,
-    val validTo: Long
+    val validTo: Long,
+    val discountPercent: Int? = null,
+    val discountAmount: Double? = null,
+    val isFreeDelivery: Boolean = false,
+    val minOrderValue: Double? = null,
+    val productId: Long? = null,
+    val categoryId: Long? = null
 )

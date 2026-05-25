@@ -8,9 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.hiranya.printxpress.data.PrintXpressDatabase
 import com.hiranya.printxpress.data.entity.Category
 import com.hiranya.printxpress.data.entity.Promotion
+import com.hiranya.printxpress.data.entity.User
 import com.hiranya.printxpress.data.repository.NotificationRepository
 import com.hiranya.printxpress.data.repository.ProductRepository
 import com.hiranya.printxpress.data.repository.PromotionRepository
+import com.hiranya.printxpress.data.repository.UserRepository
 import com.hiranya.printxpress.data.util.SessionManager
 import kotlinx.coroutines.launch
 
@@ -18,6 +20,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val productRepo: ProductRepository
     private val promotionRepo: PromotionRepository
     private val notificationRepo: NotificationRepository
+    private val userRepo: UserRepository
 
     private val _categories = mutableStateOf<List<Category>>(emptyList())
     val categories: State<List<Category>> = _categories
@@ -28,11 +31,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _unreadCount = mutableStateOf(0)
     val unreadCount: State<Int> = _unreadCount
 
+    private val _currentUser = mutableStateOf<User?>(null)
+    val currentUser: State<User?> = _currentUser
+
     init {
         val db = PrintXpressDatabase.getDatabase(application)
         productRepo = ProductRepository(db.categoryDao(), db.productDao())
         promotionRepo = PromotionRepository(db.promotionDao())
         notificationRepo = NotificationRepository(db.notificationDao())
+        userRepo = UserRepository(db.userDao())
         load()
     }
 
@@ -42,7 +49,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _activePromotions.value = promotionRepo.getActive()
             val userId = SessionManager.getUserId()
             if (userId != null) {
+                _currentUser.value = userRepo.findById(userId)
                 _unreadCount.value = notificationRepo.getByUser(userId).count { !it.isRead }
+            } else {
+                _currentUser.value = null
+                _unreadCount.value = 0
             }
         }
     }

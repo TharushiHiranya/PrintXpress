@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.getValue
+import com.hiranya.printxpress.data.entity.User
+import com.hiranya.printxpress.viewmodel.HomeViewModel
 import com.hiranya.printxpress.viewmodel.ProfileViewModel
 import com.hiranya.printxpress.ui.Screen
 import com.hiranya.printxpress.ui.components.MainScaffold
@@ -66,22 +69,59 @@ private data class MenuItem(val icon: ImageVector, val label: String, val route:
 
 private val menuItems = listOf(
     MenuItem(Icons.Rounded.LocationOn, "Delivery addresses", Screen.Addresses.route),
-    MenuItem(Icons.Rounded.FolderOpen, "Saved designs", null),
+    MenuItem(Icons.Rounded.FolderOpen, "Saved designs", Screen.SavedDesigns.route),
     MenuItem(Icons.Rounded.MenuBook, "Print guidelines", Screen.PrintGuidelines.route),
     MenuItem(Icons.Rounded.Help, "FAQs and support", Screen.Faq.route),
-    MenuItem(Icons.Rounded.Info, "About PrintXpress", null)
+    MenuItem(Icons.Rounded.Info, "About PrintXpress", Screen.About.route)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
 ) {
-    val user = viewModel.user.value
+    val user by viewModel.user
+    val orderCount by viewModel.orderCount
+    val lifetimeSpend by viewModel.lifetimeSpend
+    val tier by viewModel.tier
+    val unreadCount by homeViewModel.unreadCount
+
     LaunchedEffect(Unit) { viewModel.load() }
 
-    MainScaffold(navController) { paddingValues ->
+    ProfileContent(
+        user = user,
+        orderCount = orderCount,
+        lifetimeSpend = lifetimeSpend,
+        tier = tier,
+        unreadCount = unreadCount,
+        onEditProfile = { navController.navigate(Screen.EditProfile.route) },
+        onMenuItemClick = { route -> route?.let { navController.navigate(it) } },
+        onLogout = {
+            viewModel.logout()
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        },
+        navController = navController
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileContent(
+    user: User?,
+    orderCount: Int = 0,
+    lifetimeSpend: Double = 0.0,
+    tier: String = "Bronze",
+    unreadCount: Int = 0,
+    onEditProfile: () -> Unit,
+    onMenuItemClick: (String?) -> Unit,
+    onLogout: () -> Unit,
+    navController: NavController? = null
+) {
+    MainScaffold(navController ?: rememberNavController(), unreadCount = unreadCount) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,7 +132,7 @@ fun ProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -100,7 +140,8 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(AccentContainer, CircleShape),
+                            .background(AccentContainer, CircleShape)
+                            .clickable { onEditProfile() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Accent, modifier = Modifier.size(22.dp))
@@ -126,23 +167,10 @@ fun ProfileScreen(
                         ) {
                             Text(user?.fullName?.first()?.uppercase() ?: "?", style = MaterialTheme.typography.titleLarge, color = Accent)
                         }
-                        // Edit button overlaid at bottom-end
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(Accent, CircleShape)
-                                .then(Modifier.align(Alignment.BottomEnd)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Rounded.Edit, contentDescription = null, tint = OnAccent, modifier = Modifier.size(14.dp))
-                        }
                     }
                     Spacer(Modifier.height(14.dp))
                     Text(user?.fullName ?: "...", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
                     Text(user?.email ?: user?.phone ?: "", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                    TextButton(onClick = { navController.navigate(Screen.EditProfile.route) }) {
-                        Text("Edit profile", style = MaterialTheme.typography.bodyMedium, color = Accent)
-                    }
                 }
             }
 
@@ -163,17 +191,22 @@ fun ProfileScreen(
                             .padding(14.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("24", style = MaterialTheme.typography.titleLarge, color = Accent)
+                            Text(orderCount.toString(), style = MaterialTheme.typography.titleLarge, color = Accent)
                             Text("Orders", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                         }
                         Box(modifier = Modifier.width(1.dp).height(40.dp).background(Background))
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("LKR 142k", style = MaterialTheme.typography.titleLarge, color = Accent)
+                            val spendText = if (lifetimeSpend >= 1000) {
+                                "LKR ${(lifetimeSpend / 1000).toInt()}k"
+                            } else {
+                                "LKR ${lifetimeSpend.toInt()}"
+                            }
+                            Text(spendText, style = MaterialTheme.typography.titleLarge, color = Accent)
                             Text("Lifetime", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                         }
                         Box(modifier = Modifier.width(1.dp).height(40.dp).background(Background))
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Gold", style = MaterialTheme.typography.titleLarge, color = Accent)
+                            Text(tier, style = MaterialTheme.typography.titleLarge, color = Accent)
                             Text("Tier", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                         }
                     }
@@ -196,7 +229,7 @@ fun ProfileScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { item.route?.let { navController.navigate(it) } }
+                                    .clickable { onMenuItemClick(item.route) }
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -234,12 +267,7 @@ fun ProfileScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                viewModel.logout()
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            }
+                            .clickable { onLogout() }
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -277,6 +305,14 @@ fun ProfileScreen(
 @Composable
 private fun ProfileScreenPreview() {
     PrintXpressTheme {
-        ProfileScreen(navController = rememberNavController())
+        ProfileContent(
+            user = User(1, "Sarah Nilu", "sarah@nilu.lk", "0771234567", "", 0L),
+            orderCount = 24,
+            lifetimeSpend = 142000.0,
+            tier = "Gold",
+            onEditProfile = {},
+            onMenuItemClick = {},
+            onLogout = {}
+        )
     }
 }

@@ -16,13 +16,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Article
 import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Checkroom
 import androidx.compose.material.icons.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.LocalShipping
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Panorama
 import androidx.compose.material.icons.rounded.Print
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Store
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +52,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.getValue
+import com.hiranya.printxpress.data.entity.Address
+import com.hiranya.printxpress.data.entity.Order
+import com.hiranya.printxpress.data.entity.OrderItem
+import com.hiranya.printxpress.ui.Screen
 import com.hiranya.printxpress.viewmodel.OrderViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,6 +72,18 @@ import com.hiranya.printxpress.ui.theme.StatusRed
 import com.hiranya.printxpress.ui.theme.TextDisabled
 import com.hiranya.printxpress.ui.theme.TextPrimary
 import com.hiranya.printxpress.ui.theme.TextSecondary
+
+// Maps the iconRef string stored in OrderItem to a Compose icon.
+private fun iconForRef(ref: String): ImageVector = when (ref) {
+    "badge" -> Icons.Rounded.Badge
+    "image" -> Icons.Rounded.Image
+    "panorama" -> Icons.Rounded.Panorama
+    "article" -> Icons.Rounded.Article
+    "stars", "star" -> Icons.Rounded.Star
+    "local_cafe" -> Icons.Rounded.LocalCafe
+    "checkroom" -> Icons.Rounded.Checkroom
+    else -> Icons.Rounded.Badge
+}
 
 // Status stages for the order progress stepper
 private data class Stage(val label: String, val icon: ImageVector, val state: String)
@@ -79,11 +103,35 @@ fun OrderDetailScreen(
     orderId: Long,
     viewModel: OrderViewModel = viewModel()
 ) {
-    val order = viewModel.selectedOrder.value
-    val items = viewModel.orderItems.value
+    val order by viewModel.selectedOrder
+    val items by viewModel.orderItems
+    val address by viewModel.orderAddress
 
     LaunchedEffect(orderId) { viewModel.loadOrder(orderId) }
 
+    OrderDetailContent(
+        orderId = orderId,
+        order = order,
+        items = items,
+        address = address,
+        onBack = { navController.popBackStack() },
+        onCancelOrder = {
+            viewModel.cancelOrder(orderId)
+            navController.popBackStack()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrderDetailContent(
+    orderId: Long,
+    order: Order?,
+    items: List<OrderItem>,
+    address: Address?,
+    onBack: () -> Unit,
+    onCancelOrder: () -> Unit
+) {
     val status = order?.status ?: "processing"
     val currentStageIndex = when (status.lowercase()) {
         "processing" -> 0
@@ -99,19 +147,8 @@ fun OrderDetailScreen(
             TopAppBar(
                 title = { Text("Order #$orderId") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(40.dp)
-                            .background(AccentContainer, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.HelpOutline, contentDescription = "Help", tint = Accent)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
@@ -235,27 +272,30 @@ fun OrderDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .background(AccentContainer, RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Rounded.Badge, contentDescription = null, tint = Accent, modifier = Modifier.size(28.dp))
-                                }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .background(AccentContainer, RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text("Product #${item.productId}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                                        Text("LKR ${(item.unitPrice * item.quantity).toLong()}", style = MaterialTheme.typography.bodyLarge, color = Accent)
+                                        Icon(iconForRef(item.productImageRef), contentDescription = null, tint = Accent, modifier = Modifier.size(28.dp))
                                     }
-                                    Text("Qty ${item.quantity} · ${item.size} · ${item.paperType}", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                }
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(item.productName, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                            Text("LKR ${(item.unitPrice * item.quantity).toLong()}", style = MaterialTheme.typography.bodyLarge, color = Accent)
+                                        }
+                                        Text("Qty ${item.quantity} · ${item.size} · ${item.paperType}", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                        if (!item.customText.isNullOrBlank()) {
+                                            Text("Custom text: ${item.customText}", style = MaterialTheme.typography.labelSmall, color = Accent)
+                                        }
+                                    }
                             }
                         }
                     }
@@ -265,7 +305,11 @@ fun OrderDetailScreen(
             // Delivery details
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Delivery details", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                    Text(
+                        if (order?.fulfilment == "delivery") "Delivery details" else "Pickup details",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary
+                    )
                     OutlinedCard(
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, Divider),
@@ -283,12 +327,24 @@ fun OrderDetailScreen(
                                     .background(AccentContainer, RoundedCornerShape(10.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Rounded.LocationOn, contentDescription = null, tint = Accent)
+                                Icon(
+                                    if (order?.fulfilment == "delivery") Icons.Rounded.LocationOn else Icons.Rounded.Store,
+                                    contentDescription = null,
+                                    tint = Accent
+                                )
                             }
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Home", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                                Text("42/3 Galle Road, Bambalapitiya, Colombo 04", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                                Text("+94 77 123 4567", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                if (order?.fulfilment == "delivery") {
+                                    Text(address?.label ?: "Address", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                    Text(
+                                        address?.let { "${it.line1}, ${it.city}" } ?: "Loading address...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = TextSecondary
+                                    )
+                                } else {
+                                    Text("Store Pickup", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                    Text("42 Stratford Ave, Colombo 06", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                                }
                             }
                         }
                     }
@@ -327,33 +383,18 @@ fun OrderDetailScreen(
                 }
             }
 
-            // Cancel and reschedule actions — only shown when the order can still be modified.
+            // Cancel action — only shown when the order can still be modified.
             if (status.lowercase() in setOf("processing")) {
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.cancelOrder(orderId)
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, StatusRed)
-                        ) {
-                            Text("Cancel order", color = StatusRed)
-                        }
-                        OutlinedButton(
-                            onClick = {},
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, Accent)
-                        ) {
-                            Text("Reschedule", color = Accent)
-                        }
+                    OutlinedButton(
+                        onClick = onCancelOrder,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, StatusRed)
+                    ) {
+                        Text("Cancel order", color = StatusRed)
                     }
                 }
             }
@@ -365,6 +406,15 @@ fun OrderDetailScreen(
 @Composable
 private fun OrderDetailScreenPreview() {
     PrintXpressTheme {
-        OrderDetailScreen(navController = rememberNavController(), orderId = 1042L)
+        OrderDetailContent(
+            orderId = 1042L,
+            order = Order(1042L, 1, System.currentTimeMillis(), "printing", "delivery", null, null, 2750.0, null),
+            items = listOf(
+                OrderItem(1, 1042L, 1, "Premium Business Cards", "badge", 2, "Matte", "A4", 1200.0, null, "John Doe")
+            ),
+            address = Address(1, 1, "Home", "42/3 Galle Road", "Colombo 04", "00400"),
+            onBack = {},
+            onCancelOrder = {}
+        )
     }
 }

@@ -139,7 +139,7 @@ The visual design is captured in HTML mockup files exported from Claude Design. 
 
 Key design decisions captured here:
 - Logo: centred 180 dp on Splash, 100 dp on Login/Register
-- Login screen has a social-auth divider with Google and Apple buttons (pure UI, no backend)
+- Login screen has no social-auth options as they are not functional for this version.
 - Password strength in Register uses 4 filled segments, not a LinearProgressIndicator
 - Register has a "By continuing you agree to our Terms & Privacy policy" note
 - OfferCard has a 4 dp left accent bar and a white circle decoration in the bottom-right corner

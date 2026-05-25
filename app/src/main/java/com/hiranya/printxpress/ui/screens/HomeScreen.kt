@@ -36,6 +36,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -45,11 +47,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -58,6 +63,7 @@ import androidx.navigation.compose.rememberNavController
 import com.hiranya.printxpress.R
 import com.hiranya.printxpress.data.entity.Category
 import com.hiranya.printxpress.data.entity.Promotion
+import com.hiranya.printxpress.data.entity.User
 import com.hiranya.printxpress.ui.Screen
 import com.hiranya.printxpress.ui.components.MainScaffold
 import com.hiranya.printxpress.ui.theme.Accent
@@ -88,6 +94,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = viewMode
     val categories by viewModel.categories
     val activePromotions by viewModel.activePromotions
     val unreadCount by viewModel.unreadCount
+    val user by viewModel.currentUser
 
     // Reload data every time this screen becomes visible.
     LaunchedEffect(Unit) { viewModel.load() }
@@ -96,8 +103,19 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = viewMode
         categories = categories,
         activePromotions = activePromotions,
         unreadCount = unreadCount,
+        user = user,
         navController = navController,
-        onCategoryClick = { catId -> navController.navigate(Screen.ProductList.withId(catId)) }
+        onCategoryClick = { catId -> navController.navigate(Screen.ProductList.withId(catId)) },
+        onOfferClick = { promo ->
+            if (promo.productId != null) {
+                navController.navigate(Screen.ProductDetail.withId(promo.productId))
+            } else if (promo.categoryId != null) {
+                navController.navigate(Screen.ProductList.withId(promo.categoryId))
+            }
+        },
+        onSearch = { query -> 
+            navController.navigate(Screen.ProductList.withId(0, query))
+        }
     )
 }
 
@@ -106,70 +124,37 @@ fun HomeContent(
     categories: List<Category>,
     activePromotions: List<Promotion>,
     unreadCount: Int,
+    user: User? = null,
     navController: NavController? = null,
-    onCategoryClick: (Long) -> Unit = {}
+    onCategoryClick: (Long) -> Unit = {},
+    onOfferClick: (Promotion) -> Unit = {},
+    onSearch: (String) -> Unit = {}
 ) {
-    MainScaffold(navController ?: rememberNavController()) { paddingValues ->
+    MainScaffold(navController ?: rememberNavController(), unreadCount = unreadCount) { paddingValues ->
         LazyColumn(
             modifier = Modifier.padding(paddingValues),
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Logo + notification bell row
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.logo),
-                        contentDescription = "PrintXpress",
-                        modifier = Modifier.height(36.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Box(contentAlignment = Alignment.TopEnd) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(AccentContainer, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Rounded.Notifications, contentDescription = "Notifications", tint = Accent)
-                        }
-                        // Show dot only when there are unread notifications.
-                        if (unreadCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .background(Accent, CircleShape)
-                                    .border(1.5.dp, Background, CircleShape)
-                                    .align(Alignment.TopEnd)
-                            )
-                        }
-                    }
-                }
-            }
-
             // Greeting text
             item {
+                val firstName = user?.fullName?.split(" ")?.firstOrNull() ?: "Guest"
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("Good morning, Sarah", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+                    Text("Good morning, $firstName", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
                     Text("What would you like to print today?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 }
             }
 
-            // Read-only search field
+            // Search field
             item {
-                val searchValue by remember { mutableStateOf("") }
+                var searchValue by remember { mutableStateOf("") }
+                val focusManager = LocalFocusManager.current
                 OutlinedTextField(
                     value = searchValue,
-                    onValueChange = {},
+                    onValueChange = { searchValue = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -177,7 +162,13 @@ fun HomeContent(
                     placeholder = { Text("Search products...", color = TextDisabled) },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = TextSecondary) },
                     singleLine = true,
-                    readOnly = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        if (searchValue.isNotBlank()) {
+                            onSearch(searchValue)
+                            focusManager.clearFocus()
+                        }
+                    }),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Accent,
                         unfocusedBorderColor = Divider,
@@ -194,23 +185,20 @@ fun HomeContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
+                                .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Current offers", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                            Text("See all", style = MaterialTheme.typography.labelMedium, color = Accent)
                         }
-                        Spacer(Modifier.height(8.dp))
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(activePromotions) { promo ->
-                                OfferCard(promo)
+                                OfferCard(promo, onClick = { onOfferClick(promo) })
                             }
                         }
-                        Spacer(Modifier.height(24.dp))
                     }
                 }
             }
@@ -219,14 +207,15 @@ fun HomeContent(
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Browse by category", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                         Text("${categories.size} types", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                     }
-                    Spacer(Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         categories.chunked(2).forEach { rowItems ->
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -249,9 +238,11 @@ fun HomeContent(
 }
 
 @Composable
-private fun OfferCard(promo: Promotion) {
+private fun OfferCard(promo: Promotion, onClick: () -> Unit) {
     OutlinedCard(
-        modifier = Modifier.width(280.dp),
+        modifier = Modifier
+            .width(280.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AccentContainer),
         elevation = CardDefaults.cardElevation(0.dp),
@@ -321,13 +312,14 @@ private fun HomeScreenPreview() {
     PrintXpressTheme {
         HomeContent(
             categories = listOf(
-                Category(1, "Business cards", "Desc", "badge"),
-                Category(2, "Posters", "Desc", "image")
+                Category(1L, "Business cards", "Desc", "badge"),
+                Category(2L, "Posters", "Desc", "image")
             ),
             activePromotions = listOf(
-                Promotion(1, "20% Off", "Description", 20, "CARDS20", 0, 0)
+                Promotion(1L, "20% Off", "Description", "CARDS20", 0L, 0L, 20)
             ),
-            unreadCount = 2
+            unreadCount = 2,
+            user = User(fullName = "Sarah Connor", email = "sarah@example.com", phone = null, passwordHash = "", createdAt = 0L)
         )
     }
 }

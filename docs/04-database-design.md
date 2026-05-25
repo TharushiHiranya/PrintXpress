@@ -104,12 +104,16 @@ The lines inside an order. Each line is one product with its chosen specificatio
 | orderItemId | Long | PK | Auto-generated |
 | orderId | Long | FK to orders | Cascade on delete |
 | productId | Long | FK to products | Restrict on delete |
+| productName | String | | Snapshot of the product name at order time |
+| productImageRef | String | | Snapshot of the product image at order time |
 | quantity | Int | | At least one |
 | paperType | String | | Chosen material or paper |
 | size | String | | Chosen size |
 | unitPrice | Double | | Price for one unit at this spec |
 | designPath | String | | File path of the upload, nullable |
 | customText | String | | Typed text, nullable |
+
+`productName` and `productImageRef` are snapshots saved when the order is placed, so the order detail screen still shows the right name and image even if the catalog changes later.
 
 ### saved_designs
 
@@ -139,17 +143,24 @@ In-app messages for a user, such as order confirmations and offers.
 
 ### promotions
 
-Seasonal offers and discount codes. The app shows only active offers based on the dates.
+Seasonal offers and discount codes. Each offer can give a percentage off, a fixed amount off, or free delivery. An offer can be limited to a specific product or category. The app shows only active offers based on the dates.
 
 | Column | Type | Key | Notes |
 |--------|------|-----|-------|
 | promoId | Long | PK | Auto-generated |
 | title | String | | |
-| description | String | | |
-| discountPercent | Int | | For example 10 for 10 percent |
-| code | String | | Discount code |
+| description | String | | Short summary shown on the offer card |
+| code | String | | Discount code the customer enters |
+| discountPercent | Int? | | Nullable. For example 10 for 10 percent off |
+| discountAmount | Double? | | Nullable. Fixed amount to subtract from the total |
+| isFreeDelivery | Boolean | | True if this offer waives the delivery charge |
+| minOrderValue | Double? | | Nullable. Minimum order total needed to apply the offer |
 | validFrom | Long | | Epoch millis |
 | validTo | Long | | Epoch millis |
+| productId | Long? | FK to products (optional) | Nullable. Targets a specific product only |
+| categoryId | Long? | FK to categories (optional) | Nullable. Targets a specific category only |
+
+At least one of `discountPercent`, `discountAmount`, or `isFreeDelivery` should be set. An offer with neither is invalid. `productId` and `categoryId` are soft references with no Room cascade constraint, since deleting a product should not delete unrelated promotions.
 
 ## Relationships
 
@@ -166,6 +177,8 @@ The links between tables, read as one parent to many children.
 | products | order_items | 1 to many | A product appears on many order lines |
 | addresses | orders | 1 to many (optional) | An address is used by delivery orders |
 | promotions | orders | 1 to many (optional) | A promotion is applied to many orders |
+| products | promotions | 1 to many (optional) | A product can be targeted by many promotions |
+| categories | promotions | 1 to many (optional) | A category can be targeted by many promotions |
 
 The full picture is in the ER diagram at `diagrams/04-er.drawio`, explained in `05-diagrams.md`.
 

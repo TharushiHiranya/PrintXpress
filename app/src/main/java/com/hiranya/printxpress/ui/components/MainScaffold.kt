@@ -1,13 +1,19 @@
 package com.hiranya.printxpress.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -16,18 +22,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.hiranya.printxpress.ui.Screen
 import com.hiranya.printxpress.ui.theme.Accent
 import com.hiranya.printxpress.ui.theme.Background
 import com.hiranya.printxpress.ui.theme.Divider
+import com.hiranya.printxpress.ui.theme.OnAccent
+import com.hiranya.printxpress.ui.theme.StatusRed
 import com.hiranya.printxpress.ui.theme.TextSecondary
+import com.hiranya.printxpress.viewmodel.HomeViewModel
 
 // Tab definition for the bottom navigation bar
 private data class NavTab(
@@ -38,7 +51,7 @@ private data class NavTab(
 
 private val navTabs = listOf(
     NavTab("Home", Icons.Rounded.Home, Screen.Home.route),
-    NavTab("Products", Icons.Rounded.GridView, Screen.ProductList.withId(0)),
+    NavTab("Products", Icons.Rounded.GridView, "product_list/0"),
     NavTab("Orders", Icons.Rounded.Receipt, Screen.Orders.route),
     NavTab("Alerts", Icons.Rounded.Notifications, Screen.Notifications.route),
     NavTab("Profile", Icons.Rounded.Person, Screen.Profile.route)
@@ -46,12 +59,22 @@ private val navTabs = listOf(
 
 // Wraps any bottom-nav screen with the shared navigation bar and scaffold
 @Composable
-fun MainScaffold(navController: NavController, content: @Composable (PaddingValues) -> Unit) {
+fun MainScaffold(
+    navController: NavController,
+    unreadCount: Int = 0,
+    content: @Composable (PaddingValues) -> Unit
+) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    // Determine which tab is active by matching the current route
-    val selectedIndex = navTabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
+    // Determine which tab is active by matching the current route or its prefix
+    val selectedIndex = navTabs.indexOfFirst { tab ->
+        currentRoute != null && (
+            currentRoute == tab.route || 
+            (tab.label == "Products" && currentRoute.startsWith("product_list")) ||
+            (tab.label == "Orders" && currentRoute.startsWith("order_detail"))
+        )
+    }.coerceAtLeast(0)
 
     Scaffold(
         bottomBar = {
@@ -74,17 +97,38 @@ fun MainScaffold(navController: NavController, content: @Composable (PaddingValu
                         selected = selected,
                         onClick = {
                             navController.navigate(tab.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
+                                // Pop up to the start destination of the graph to
+                                // avoid building up a large stack of destinations
+                                // on the back stack as users select items
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination when
+                                // reselecting the same item
                                 launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
                                 restoreState = true
                             }
                         },
                         icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.label,
-                                tint = if (selected) Accent else TextSecondary
-                            )
+                            BadgedBox(
+                                badge = {
+                                    if (tab.label == "Alerts" && unreadCount > 0) {
+                                        Badge(
+                                            containerColor = StatusRed,
+                                            contentColor = Color.White
+                                        ) {
+                                            Text(unreadCount.toString())
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.label,
+                                    tint = if (selected) Accent else TextSecondary
+                                )
+                            }
                         },
                         label = {
                             Text(

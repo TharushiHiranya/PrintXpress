@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Badge
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Upload
@@ -67,8 +68,10 @@ import com.hiranya.printxpress.ui.theme.Background
 import com.hiranya.printxpress.ui.theme.Divider
 import com.hiranya.printxpress.ui.theme.OnAccent
 import com.hiranya.printxpress.ui.theme.PrintXpressTheme
+import com.hiranya.printxpress.ui.theme.StatusRed
 import com.hiranya.printxpress.ui.theme.TextDisabled
 import com.hiranya.printxpress.ui.theme.TextPrimary
+import com.hiranya.printxpress.data.entity.Product
 import com.hiranya.printxpress.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,15 +81,35 @@ fun ProductDetailScreen(
     productId: Long,
     viewModel: ProductViewModel = viewModel()
 ) {
+    val product by viewModel.selectedProduct
+    val savedDesignIds by viewModel.savedDesignIds
+
+    LaunchedEffect(productId) { viewModel.loadProduct(productId) }
+
+    ProductDetailContent(
+        product = product,
+        isSaved = product?.let { savedDesignIds.contains(it.name) } ?: false,
+        onBack = { navController.popBackStack() },
+        onAddToOrder = { qty, size, material, text ->
+            navController.navigate(Screen.PlaceOrder.withParams(productId, qty, size, material, text))
+        },
+        onSaveClick = { product?.let { viewModel.toggleSaveProduct(it) } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProductDetailContent(
+    product: Product?,
+    isSaved: Boolean,
+    onBack: () -> Unit,
+    onAddToOrder: (Int, String, String, String?) -> Unit,
+    onSaveClick: () -> Unit
+) {
     var selectedSize by remember { mutableIntStateOf(0) }
     var selectedPaper by remember { mutableIntStateOf(0) }
     var qty by remember { mutableIntStateOf(1) }
-    var designTab by remember { mutableIntStateOf(0) }
     var textContent by remember { mutableStateOf("") }
-
-    val product = viewModel.selectedProduct.value
-
-    LaunchedEffect(productId) { viewModel.loadProduct(productId) }
 
     val sizeOptions = product?.sizeOptions?.split(",")?.map { it.trim() }
         ?: listOf("A4", "A5", "A6")
@@ -102,7 +125,7 @@ fun ProductDetailScreen(
             TopAppBar(
                 title = { Text(productName) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -112,10 +135,15 @@ fun ProductDetailScreen(
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .size(40.dp)
-                            .background(AccentContainer, CircleShape),
+                            .background(AccentContainer, CircleShape)
+                            .clickable { onSaveClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.FavoriteBorder, contentDescription = "Save", tint = Accent)
+                        Icon(
+                            imageVector = if (isSaved) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            contentDescription = "Save",
+                            tint = if (isSaved) StatusRed else Accent
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
@@ -136,7 +164,11 @@ fun ProductDetailScreen(
                         Text("LKR ${(productPrice * qty).toLong()}", style = MaterialTheme.typography.titleLarge, color = Accent)
                     }
                     Button(
-                        onClick = { navController.navigate(Screen.PlaceOrder.withId(productId)) },
+                        onClick = {
+                            val size = sizeOptions.getOrNull(selectedSize) ?: "Standard"
+                            val material = paperOptions.getOrNull(selectedPaper) ?: "Matte"
+                            onAddToOrder(qty, size, material, textContent)
+                        },
                         modifier = Modifier.height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Accent)
@@ -308,90 +340,28 @@ fun ProductDetailScreen(
 
             // Design upload / text entry section
             Text(
-                "Your design",
+                "Custom text or instructions",
                 style = MaterialTheme.typography.titleMedium,
                 color = TextPrimary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            // Tab strip to toggle between upload and text entry
-            Row(
+            OutlinedTextField(
+                value = textContent,
+                onValueChange = { textContent = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .border(1.dp, Divider, RoundedCornerShape(8.dp))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(if (designTab == 0) AccentContainer else Background)
-                        .clickable { designTab = 0 }
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Upload file",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (designTab == 0) Accent else TextSecondary
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(if (designTab == 1) AccentContainer else Background)
-                        .clickable { designTab = 1 }
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Enter text",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (designTab == 1) Accent else TextSecondary
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Upload tab content
-            if (designTab == 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .border(1.5.dp, Accent, RoundedCornerShape(14.dp))
-                        .background(AccentContainer, RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Rounded.Upload, contentDescription = null, tint = Accent, modifier = Modifier.size(32.dp))
-                        Text("Tap to upload your design", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                        Text("PDF, PNG, JPG · up to 25 MB", style = MaterialTheme.typography.labelSmall, color = TextDisabled)
-                    }
-                }
-            } else {
-                // Text input tab
-                OutlinedTextField(
-                    value = textContent,
-                    onValueChange = { textContent = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(120.dp),
-                    placeholder = { Text("Type your custom text here...") },
-                    maxLines = 5,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Accent,
-                        unfocusedBorderColor = Divider,
-                        cursorColor = Accent,
-                        focusedLabelColor = Accent
-                    )
+                    .height(120.dp),
+                placeholder = { Text("Enter the text to be printed or special instructions for your design...") },
+                maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Accent,
+                    unfocusedBorderColor = Divider,
+                    cursorColor = Accent,
+                    focusedLabelColor = Accent
                 )
-            }
+            )
 
             // Turnaround and delivery info
             OutlinedCard(
@@ -421,6 +391,12 @@ fun ProductDetailScreen(
 @Composable
 private fun ProductDetailScreenPreview() {
     PrintXpressTheme {
-        ProductDetailScreen(navController = rememberNavController(), productId = 1L)
+        ProductDetailContent(
+            product = Product(1, 1, "Premium matt cards", "Thick 400 gsm card with soft-touch lamination.", 650.0, "Soft Touch", "product_business_card_premium", "85x55mm,90x50mm", "Soft Touch,Glossy Laminate"),
+            isSaved = false,
+            onBack = {},
+            onAddToOrder = { _, _, _, _ -> },
+            onSaveClick = {}
+        )
     }
 }

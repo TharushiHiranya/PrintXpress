@@ -28,6 +28,8 @@ data class OrderItem(
     @PrimaryKey(autoGenerate = true) val orderItemId: Long = 0,
     val orderId: Long,
     val productId: Long,
+    val productName: String,
+    val productImageRef: String,
     val quantity: Int,
     val paperType: String,
     val size: String,

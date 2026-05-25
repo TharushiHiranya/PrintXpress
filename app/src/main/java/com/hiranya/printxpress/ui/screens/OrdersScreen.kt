@@ -2,6 +2,7 @@ package com.hiranya.printxpress.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -27,12 +27,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +65,7 @@ import com.hiranya.printxpress.ui.theme.StatusRed
 import com.hiranya.printxpress.ui.theme.StatusRedBg
 import com.hiranya.printxpress.ui.theme.TextPrimary
 import com.hiranya.printxpress.ui.theme.TextSecondary
+import com.hiranya.printxpress.viewmodel.HomeViewModel
 import com.hiranya.printxpress.viewmodel.OrderViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -76,11 +76,35 @@ private val tabLabels = listOf("All", "Active", "Completed", "Cancelled")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewModel()) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val allOrders = viewModel.orders.value
+fun OrdersScreen(
+    navController: NavController,
+    viewModel: OrderViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
+) {
+    val allOrders by viewModel.orders
+    val unreadCount by homeViewModel.unreadCount
 
     LaunchedEffect(Unit) { viewModel.loadOrders() }
+
+    OrdersContent(
+        allOrders = allOrders,
+        unreadCount = unreadCount,
+        navController = navController,
+        onOrderClick = { navController.navigate(Screen.OrderDetail.withId(it)) },
+        onBrowseProducts = { navController.navigate(Screen.ProductList.withId(1L)) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrdersContent(
+    allOrders: List<Order>,
+    unreadCount: Int = 0,
+    navController: NavController? = null,
+    onOrderClick: (Long) -> Unit = {},
+    onBrowseProducts: () -> Unit = {}
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     val visibleOrders = when (selectedTab) {
         1 -> allOrders.filter { it.status in activeStatuses }
@@ -89,7 +113,7 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
         else -> allOrders
     }
 
-    MainScaffold(navController) { paddingValues ->
+    MainScaffold(navController ?: rememberNavController(), unreadCount = unreadCount) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,25 +122,19 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("My orders", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(AccentContainer, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Rounded.Search, contentDescription = "Search", tint = Accent)
-                }
             }
 
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Background,
-                contentColor = Accent
+                contentColor = Accent,
+                edgePadding = 16.dp,
+                divider = {}
             ) {
                 tabLabels.forEachIndexed { index, label ->
                     Tab(
@@ -126,7 +144,8 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
                             Text(
                                 label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (selectedTab == index) Accent else TextSecondary
+                                color = if (selectedTab == index) Accent else TextSecondary,
+                                maxLines = 1
                             )
                         }
                     )
@@ -151,7 +170,7 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
                             if (selectedTab == 0) {
                                 Spacer(Modifier.height(4.dp))
                                 Button(
-                                    onClick = { navController.navigate(Screen.ProductList.withId(1L)) },
+                                    onClick = onBrowseProducts,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Accent)
                                 ) {
@@ -162,7 +181,7 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
                     }
                 } else {
                     items(visibleOrders) { order ->
-                        OrderCard(order = order, navController = navController)
+                        OrderCard(order = order, onOrderClick = onOrderClick)
                     }
                 }
             }
@@ -171,7 +190,7 @@ fun OrdersScreen(navController: NavController, viewModel: OrderViewModel = viewM
 }
 
 @Composable
-private fun OrderCard(order: Order, navController: NavController) {
+private fun OrderCard(order: Order, onOrderClick: (Long) -> Unit) {
     val dateStr = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(order.orderDate))
     OutlinedCard(
         shape = RoundedCornerShape(16.dp),
@@ -216,14 +235,13 @@ private fun OrderCard(order: Order, navController: NavController) {
                     Text("Total", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                     Text("LKR ${order.totalAmount.toLong()}", style = MaterialTheme.typography.titleMedium, color = Accent)
                 }
-                IconButton(onClick = { navController.navigate(Screen.OrderDetail.withId(order.orderId)) }) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("View details", style = MaterialTheme.typography.bodyMedium, color = Accent)
-                        Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
-                    }
+                Row(
+                    modifier = Modifier.clickable { onOrderClick(order.orderId) },
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("View details", style = MaterialTheme.typography.bodyMedium, color = Accent)
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -255,6 +273,11 @@ fun StatusBadge(status: String) {
 @Composable
 private fun OrdersScreenPreview() {
     PrintXpressTheme {
-        OrdersScreen(navController = rememberNavController())
+        OrdersContent(
+            allOrders = listOf(
+                Order(1, 1, System.currentTimeMillis(), "printing", "delivery", null, null, 2400.0, null),
+                Order(2, 1, System.currentTimeMillis() - 86400000, "completed", "pickup", null, null, 1500.0, null)
+            )
+        )
     }
 }

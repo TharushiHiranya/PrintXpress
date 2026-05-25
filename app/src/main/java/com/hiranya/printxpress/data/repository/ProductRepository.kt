@@ -12,7 +12,9 @@ class ProductRepository(
     suspend fun getCategories(): List<Category> = categoryDao.getAll()
 
     suspend fun getProductsByCategory(categoryId: Long): List<Product> =
-        productDao.getByCategory(categoryId)
+        if (categoryId == 0L) productDao.getAll() else productDao.getByCategory(categoryId)
+
+    suspend fun getAllProducts(): List<Product> = productDao.getAll()
 
     suspend fun getProductById(productId: Long): Product? = productDao.getById(productId)
 }

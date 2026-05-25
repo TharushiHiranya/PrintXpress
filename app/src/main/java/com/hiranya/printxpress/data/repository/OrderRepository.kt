@@ -47,6 +47,8 @@ class OrderRepository(
             OrderItem(
                 orderId = orderId,
                 productId = productId,
+                productName = product?.name ?: "Unknown Product",
+                productImageRef = product?.imageRef ?: "badge",
                 quantity = quantity,
                 paperType = material,
                 size = size,

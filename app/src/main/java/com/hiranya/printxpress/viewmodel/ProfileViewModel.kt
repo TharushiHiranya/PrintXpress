@@ -11,6 +11,8 @@ import com.hiranya.printxpress.data.entity.Address
 import com.hiranya.printxpress.data.entity.SavedDesign
 import com.hiranya.printxpress.data.entity.User
 import com.hiranya.printxpress.data.repository.AddressRepository
+import com.hiranya.printxpress.data.repository.OrderRepository
+import com.hiranya.printxpress.data.repository.SavedDesignRepository
 import com.hiranya.printxpress.data.repository.UserRepository
 import com.hiranya.printxpress.data.util.SessionManager
 import com.hiranya.printxpress.data.util.checkPassword
@@ -20,6 +22,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val userRepo: UserRepository
     private val addressRepo: AddressRepository
+    private val orderRepo: OrderRepository
+    private val designRepo: SavedDesignRepository
 
     private val _user = mutableStateOf<User?>(null)
     val user: State<User?> = _user
@@ -30,6 +34,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _savedDesigns = mutableStateOf<List<SavedDesign>>(emptyList())
     val savedDesigns: State<List<SavedDesign>> = _savedDesigns
 
+    private val _orderCount = mutableStateOf(0)
+    val orderCount: State<Int> = _orderCount
+
+    private val _lifetimeSpend = mutableStateOf(0.0)
+    val lifetimeSpend: State<Double> = _lifetimeSpend
+
+    private val _tier = mutableStateOf("Bronze")
+    val tier: State<String> = _tier
+
     val updateError: MutableState<String?> = mutableStateOf(null)
     val updateSuccess: MutableState<Boolean> = mutableStateOf(false)
 
@@ -37,6 +50,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         val db = PrintXpressDatabase.getDatabase(application)
         userRepo = UserRepository(db.userDao())
         addressRepo = AddressRepository(db.addressDao())
+        orderRepo = OrderRepository(db.orderDao(), db.orderItemDao(), db.notificationDao(), db.productDao())
+        designRepo = SavedDesignRepository(db.savedDesignDao())
         load()
     }
 
@@ -45,6 +60,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _user.value = userRepo.findById(userId)
             _addresses.value = addressRepo.getByUser(userId)
+            _savedDesigns.value = designRepo.getSavedDesignsByUser(userId)
+            
+            val orders = orderRepo.getOrdersByUser(userId)
+            _orderCount.value = orders.size
+            _lifetimeSpend.value = orders.sumOf { it.totalAmount }
+            
+            _tier.value = when {
+                _lifetimeSpend.value >= 50000 -> "Gold"
+                _lifetimeSpend.value >= 15000 -> "Silver"
+                else -> "Bronze"
+            }
         }
     }
 
@@ -119,6 +145,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             val address = addressRepo.getById(addressId) ?: return@launch
             addressRepo.delete(address)
             _addresses.value = addressRepo.getByUser(userId)
+        }
+    }
+
+    fun deleteDesign(design: SavedDesign) {
+        val userId = SessionManager.getUserId() ?: return
+        viewModelScope.launch {
+            designRepo.deleteDesign(design)
+            _savedDesigns.value = designRepo.getSavedDesignsByUser(userId)
         }
     }
 

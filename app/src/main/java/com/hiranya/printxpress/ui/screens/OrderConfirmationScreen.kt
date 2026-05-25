@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -31,11 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.hiranya.printxpress.ui.Screen
 import com.hiranya.printxpress.ui.theme.Accent
 import com.hiranya.printxpress.ui.theme.AccentContainer
@@ -46,126 +46,195 @@ import com.hiranya.printxpress.ui.theme.TextSecondary
 
 @Composable
 fun OrderConfirmationScreen(navController: NavController, orderId: Long) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    OrderConfirmationContent(
+        orderId = orderId,
+        onViewOrders = { navController.navigate(Screen.Orders.route) },
+        onBackToHome = { 
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+        },
+    )
+}
+
+@Composable
+fun OrderConfirmationContent(
+    orderId: Long,
+    onViewOrders: () -> Unit,
+    onBackToHome: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Spacer(Modifier.height(80.dp))
-
-        // Layered circle animation placeholder
-        Box(
-            modifier = Modifier.size(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(AccentContainer.copy(alpha = 0.5f), CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(152.dp)
-                    .background(AccentContainer, CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .background(Accent, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = OnAccent, modifier = Modifier.size(52.dp))
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        Text(
-            "Order placed!",
-            style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimary,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            "Your order is being processed. We'll notify you the moment it's ready.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 280.dp)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Order number chip
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = AccentContainer
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.Receipt, contentDescription = null, tint = Accent, modifier = Modifier.size(16.dp))
-                Text("Order #$orderId", style = MaterialTheme.typography.labelMedium, color = Accent)
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // Estimated ready time card
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = AccentContainer),
-            elevation = CardDefaults.cardElevation(0.dp),
-            border = BorderStroke(0.dp, AccentContainer)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.Schedule, contentDescription = null, tint = Accent, modifier = Modifier.size(28.dp))
-                Column {
-                    Text("Estimated ready", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                    Text("2–3 business days", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                }
-            }
-        }
-
-        // Push buttons to the bottom
-        Spacer(Modifier.weight(1f))
-
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { navController.navigate(Screen.Orders.route) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent)
+            Spacer(Modifier.height(64.dp))
+
+            // Success Visual
+            Box(
+                modifier = Modifier.size(200.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("View my orders", color = OnAccent)
+                // Outer glow/circle
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(Accent.copy(alpha = 0.08f), CircleShape)
+                )
+                // Middle circle
+                Box(
+                    modifier = Modifier
+                        .size(152.dp)
+                        .background(Accent.copy(alpha = 0.15f), CircleShape)
+                )
+                // Main circle with icon
+                Surface(
+                    modifier = Modifier.size(96.dp),
+                    shape = CircleShape,
+                    color = Accent,
+                    shadowElevation = 4.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = OnAccent,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
             }
-            OutlinedButton(
-                onClick = { navController.navigate(Screen.Home.route) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Accent)
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = "Order placed!",
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = "Your order is being processed. We'll notify you the moment it's ready.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 280.dp)
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Order ID Chip
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = AccentContainer
             ) {
-                Text("Back to home", color = Accent)
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Receipt,
+                        contentDescription = null,
+                        tint = Accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Order #$orderId",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Accent,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(40.dp))
+
+            // Estimated Delivery Card
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.outlinedCardColors(containerColor = AccentContainer.copy(alpha = 0.3f)),
+                border = BorderStroke(1.dp, AccentContainer)
+            ) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        color = AccentContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Schedule,
+                                contentDescription = null,
+                                tint = Accent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column {
+                        Text(
+                            text = "Estimated ready",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "2–3 business days",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // Bottom Buttons
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onViewOrders,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Accent)
+                ) {
+                    Text(
+                        "View my orders",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = OnAccent
+                    )
+                }
+                OutlinedButton(
+                    onClick = onBackToHome,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, Accent)
+                ) {
+                    Text(
+                        "Back to home",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Accent
+                    )
+                }
             }
         }
     }
@@ -175,6 +244,10 @@ fun OrderConfirmationScreen(navController: NavController, orderId: Long) {
 @Composable
 private fun OrderConfirmationScreenPreview() {
     PrintXpressTheme {
-        OrderConfirmationScreen(navController = rememberNavController(), orderId = 1042L)
+        OrderConfirmationContent(
+            orderId = 1042L,
+            onViewOrders = {},
+            onBackToHome = {}
+        )
     }
 }

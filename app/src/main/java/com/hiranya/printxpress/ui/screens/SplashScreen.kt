@@ -42,6 +42,11 @@ fun SplashScreen(navController: NavController) {
         }
     }
 
+    SplashScreenContent()
+}
+
+@Composable
+fun SplashScreenContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -79,6 +84,6 @@ fun SplashScreen(navController: NavController) {
 @Composable
 fun SplashScreenPreview() {
     PrintXpressTheme {
-        SplashScreen(rememberNavController())
+        SplashScreenContent()
     }
 }

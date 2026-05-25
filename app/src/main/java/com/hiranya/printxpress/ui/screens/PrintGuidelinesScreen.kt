@@ -78,15 +78,20 @@ private val guidelines = listOf(
     )
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrintGuidelinesScreen(navController: NavController) {
+    PrintGuidelinesContent(onBack = { navController.popBackStack() })
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrintGuidelinesContent(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Print guidelines") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -127,41 +132,6 @@ fun PrintGuidelinesScreen(navController: NavController) {
             // Expandable guideline topics
             items(guidelines) { guideline ->
                 GuidelineAccordion(guideline)
-            }
-
-            // Spec sheet download row
-            item {
-                OutlinedCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Divider),
-                    colors = CardDefaults.cardColors(containerColor = Background),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(AccentContainer, RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Rounded.Description, contentDescription = null, tint = Accent)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Download our spec sheet", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                            Text("One-page PDF with all the dimensions", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                        }
-                        Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Accent)
-                    }
-                }
             }
         }
     }
@@ -221,6 +191,6 @@ private fun GuidelineAccordion(guideline: Guideline) {
 @Composable
 private fun PrintGuidelinesScreenPreview() {
     PrintXpressTheme {
-        PrintGuidelinesScreen(navController = rememberNavController())
+        PrintGuidelinesContent(onBack = {})
     }
 }

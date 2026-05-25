@@ -2,12 +2,13 @@ package com.hiranya.printxpress.data.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.hiranya.printxpress.data.entity.Category
 
 @Dao
 interface CategoryDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(category: Category): Long
 
     @Query("SELECT * FROM categories ORDER BY name ASC")

@@ -44,6 +44,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalContext
+import android.view.autofill.AutofillManager
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,11 +76,15 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
     val isLoading by viewModel.isLoading
     val loginError by viewModel.loginError
 
+    val context = LocalContext.current
+    val autofillManager = context.getSystemService(AutofillManager::class.java)
+
     LoginContent(
         isLoading = isLoading,
         loginError = loginError,
         onLogin = { email, password ->
             viewModel.login(email, password) {
+                autofillManager?.commit()
                 navController.navigate(Screen.Home.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
@@ -134,9 +147,15 @@ fun LoginContent(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email or phone") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentType = ContentType.EmailAddress },
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -145,10 +164,16 @@ fun LoginContent(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentType = ContentType.Password },
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
@@ -191,65 +216,7 @@ fun LoginContent(
             Text(loginError, style = MaterialTheme.typography.labelSmall, color = Color(0xFFC62828))
         }
 
-        // "or continue with" divider
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Divider)
-            Text(
-                text = "or continue with",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextDisabled,
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Divider)
-        }
-
-        // Google and Apple social sign-in buttons (UI only)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = {},
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Divider)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF4285F4))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Google", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-            }
-            OutlinedButton(
-                onClick = {},
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Divider)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(TextPrimary)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Apple", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Register link at the bottom
         Row(
@@ -271,6 +238,11 @@ fun LoginContent(
 @Composable
 fun LoginScreenPreview() {
     PrintXpressTheme {
-        LoginScreen(rememberNavController())
+        LoginContent(
+            isLoading = false,
+            loginError = null,
+            onLogin = { _, _ -> },
+            onRegisterClick = {}
+        )
     }
 }

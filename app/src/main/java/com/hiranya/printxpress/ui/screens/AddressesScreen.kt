@@ -33,10 +33,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -50,6 +54,13 @@ import com.hiranya.printxpress.ui.theme.OnAccent
 import com.hiranya.printxpress.ui.theme.PrintXpressTheme
 import com.hiranya.printxpress.ui.theme.TextPrimary
 import com.hiranya.printxpress.ui.theme.TextSecondary
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 
 @Composable
 fun AddressesScreen(
@@ -57,14 +68,25 @@ fun AddressesScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val addresses by viewModel.addresses
+    var showAddDialog by remember { mutableStateOf(false) }
 
     AddressesContent(
         addresses = addresses,
         onBack = { navController.popBackStack() },
         onDelete = { viewModel.deleteAddress(it) },
         onSetDefault = { viewModel.setDefaultAddress(it) },
-        onAddAddress = { /* Navigate to add address screen or show dialog */ }
+        onAddAddress = { showAddDialog = true }
     )
+
+    if (showAddDialog) {
+        AddAddressDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { label, line1, city, postalCode ->
+                viewModel.addAddress(label, line1, city, postalCode)
+                showAddDialog = false
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -191,16 +213,11 @@ private fun AddressCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                    TextButton(onClick = { /* TODO: Edit */ }) {
-                        Text("Edit", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                    }
-                    TextButton(onClick = onDelete) {
-                        Text("Delete", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                    }
+                TextButton(onClick = onDelete) {
+                    Text("Delete", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 }
                 if (!addr.isDefault) {
                     TextButton(onClick = onSetDefault) {
@@ -210,6 +227,94 @@ private fun AddressCard(
             }
         }
     }
+}
+
+@Composable
+fun AddAddressDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String, String) -> Unit
+) {
+    var label by remember { mutableStateOf("") }
+    var line1 by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var postalCode by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Background,
+            tonalElevation = 2.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Add new address",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = TextPrimary
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AddressInputField(label = "Address Label (e.g. Home, Office)", value = label, onValueChange = { label = it })
+                    AddressInputField(label = "Address Line", value = line1, onValueChange = { line1 = it })
+                    AddressInputField(label = "City", value = city, onValueChange = { city = it })
+                    AddressInputField(label = "Postal Code", value = postalCode, onValueChange = { postalCode = it })
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Divider)
+                    ) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                    Button(
+                        onClick = {
+                            if (label.isNotBlank() && line1.isNotBlank() && city.isNotBlank() && postalCode.isNotBlank()) {
+                                onConfirm(label, line1, city, postalCode)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                        enabled = label.isNotBlank() && line1.isNotBlank() && city.isNotBlank() && postalCode.isNotBlank()
+                    ) {
+                        Text("Save", color = OnAccent)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddressInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Accent,
+            unfocusedBorderColor = Divider,
+            cursorColor = Accent,
+            focusedLabelColor = Accent
+        )
+    )
 }
 
 @Preview(showBackground = true)
